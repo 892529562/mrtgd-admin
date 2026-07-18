@@ -28,12 +28,10 @@ excelconvert.setDefaultTypeValue("object", null);
 app.use(cors());
 app.use(bodyParser.json());
 
-// 静态接管本地已经静态固化好的精美前端控制中心网页
+// 静态接管本地已经固化好的前端控制中心网页
 app.use(express.static(DIST_DIR));
 
-// ==================== 控制层 1: 策略参数热下发及公告分发 ====================
-
-// 保存多渠道环境参数与公告栏排期
+// ----------------- 路由配置 1: 策略参数热下发及公告分发 -----------------
 app.post('/api/save-config', async (req, res) => {
     try {
         const { channel, params, notice } = req.body;
@@ -53,7 +51,6 @@ app.post('/api/save-config', async (req, res) => {
     }
 });
 
-// 面向游戏客户端拉取各渠道独立的实时配置包
 app.get('/api/get-config/:channel', async (req, res) => {
     try {
         const channel = req.params.channel || '0';
@@ -69,11 +66,10 @@ app.get('/api/get-config/:channel', async (req, res) => {
     }
 });
 
-// ==================== 控制层 2: 二进制 Excel 策划表流接收 ====================
-
+// ----------------- 路由配置 2: 策划 Excel 接收暂存器 -----------------
 const excelStorage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, EXCEL_DIR),
-    filename: (req, file, cb) => cb(null, file.originalname) // 锚定策划原表名防止联动链破损
+    filename: (req, file, cb) => cb(null, file.originalname)
 });
 
 const uploadEncoder = multer({
@@ -96,20 +92,17 @@ app.post('/api/upload-excel', uploadEncoder.single('excelFile'), (req, res) => {
     }
 });
 
-// ==================== 控制层 3: 自动化解析引擎（深度同步您压缩包源码） ====================
-
+// ----------------- 路由配置 3: 自动化解析引擎（深度同步您配置表压缩包源码） -----------------
 app.post('/api/convert-excel', async (req, res) => {
     try {
         let data = {};
         let files = await fs.readdir(EXCEL_DIR);
-        // 自动过滤 Excel 在协作编辑或上传时残留的隐藏级临时缓存锁 ~$
         let xlsxFiles = files.filter(f => f.endsWith('.xlsx') && !f.startsWith('~'));
 
         if (xlsxFiles.length === 0) {
             return res.status(400).send({ code: 400, msg: '云端暂存区内未发现任何可供重构的表格资产' });
         }
 
-        // 完美克隆您配置表包内的串行 addFileData 链条
         for (let file of xlsxFiles) {
             const buffer = await fs.readFile(path.join(EXCEL_DIR, file));
             let jsonData = excelconvert.convert(new Uint8Array(buffer));
@@ -118,7 +111,6 @@ app.post('/api/convert-excel', async (req, res) => {
             }
         }
 
-        // 重构输出无缩进、高压缩的正式版 design.json
         await fs.writeJson(path.join(CONFIG_DIR, 'design.json'), data);
         res.send({ code: 200, msg: `成功合并编译 ${xlsxFiles.length} 个策划表！云端 design.json 已经就绪。` });
     } catch (err) {
@@ -128,16 +120,16 @@ app.post('/api/convert-excel', async (req, res) => {
 
 // 通配兜底重定向，保障单页面应用前台路由刷新不白屏
 app.get('*', (req, res) => {
-    if (fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
-        res.sendFile(path.join(DIST_DIR, 'index.html'));
+    const indexPath = path.join(DIST_DIR, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
     } else {
-        res.status(404).send('Administrative assets initialize failed.');
+        res.status(404).send('Administrative assets initialize failed. Please check if dist/index.html exists.');
     }
 });
 
 app.listen(PORT, () => {
     console.log(`====================================================`);
-    console.log(` 🚀 《末日特工队》高可用控制台云端网关服务激活成功！`);
-    console.log(` 服务端口监听: ${PORT}`);
+    console.log(` 🚀 《末日特工队》控制中心云端服务激活成功！`);
     console.log(`====================================================`);
 });
