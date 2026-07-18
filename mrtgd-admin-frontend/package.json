@@ -1,7 +1,7 @@
 {
   "name": "mrtgd-admin-server",
   "version": "1.0.0",
-  "description": "末日特工队全栈控制中枢",
+  "description": "末日特工队全栈控制台",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
